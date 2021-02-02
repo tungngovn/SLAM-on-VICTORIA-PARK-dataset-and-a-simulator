@@ -23,9 +23,9 @@ if makeVideo
         vo = avifile('video.avi', 'fps', min(5, 1/pauseLen));
     catch
         votype = 'VideoWriter';
-        vo = VideoWriter('video', 'MPEG-4');
-        set(vo, 'FrameRate', min(5, 1/pauseLen));
-        open(vo);
+        %%%vo = VideoWriter('video', 'MPEG-4');
+        %%%set(vo, 'FrameRate', min(5, 1/pauseLen));
+        %%%open(vo);
     end
 end
 
@@ -116,7 +116,7 @@ for k=1:min(nSteps, length(Data.Laser.time))
           case 'avifile'
             vo = addframe(vo, F);
           case 'VideoWriter'
-            writeVideo(vo, F);
+            %%%writeVideo(vo, F);
           otherwise
             error('unrecognized votype');
         end

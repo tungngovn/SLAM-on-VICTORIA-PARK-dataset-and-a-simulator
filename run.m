@@ -25,8 +25,8 @@ function varargout = run(numSteps, choice, pauseLen, da)
 
 
 
-addpath('./slamsim');
-addpath('./vicpark');
+%%% addpath('./slamsim');
+%%% addpath('./vicpark');
 
 if ~exist('pauseLen', 'var') || isempty(pauseLen)
     pauseLen = [];
@@ -36,7 +36,7 @@ clear global Param State Data;
 global Param;
 global State;
 global Data;
-rng(1)
+% rng(1)
 
 % select which data association method to use in ekfupdate.m, choices are:
 %   known - only available in simulator
