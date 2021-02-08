@@ -1,3 +1,4 @@
+
 # Load raw data
 
 Data = load_vp_si();
@@ -27,6 +28,7 @@ set_threshold;
 
 # For to scan all the data
 
+```
 for k=1:length(Data.Laser.time)
 
         while (Data.Control.time(ci) < Data.Laser.time(k))
@@ -45,12 +47,11 @@ for k=1:length(Data.Laser.time)
         
         if (new_vertex(X, M)): {add_SE2_vertex; add_SE2_edge}
 
-
+```
 ## Closure detection
-
-
 
 # Add vertex
 
-write_vertex_to_
+write_vertex_to_file
+
 
