@@ -1,6 +1,7 @@
 %% Create g2o file from raw Victoria Park dataset
 %% Ngo Thanh Tung, HUST
 
+function g2orun()
 
 %function runvp(nSteps,pauseLen, makeVideo)
 
@@ -11,27 +12,27 @@ global Data;
 Param.vp=1;
 Param.sim=0;
 
-if ~exist('nSteps','var') || isempty(nSteps)
-    nSteps = inf;
-end
+% if ~exist('nSteps','var') || isempty(nSteps)
+%     nSteps = inf;
+% end
 
-if ~exist('pauseLen','var')
-    pauseLen = 0; % seconds
-end
+% if ~exist('pauseLen','var')
+%     pauseLen = 0; % seconds
+% end
 
 Data = load_vp_si();
 
-if makeVideo
-    try
-        votype = 'avifile';
-        vo = avifile('video.avi', 'fps', min(5, 1/pauseLen));
-    catch
-        votype = 'VideoWriter';
-        %%%vo = VideoWriter('video', 'MPEG-4');
-        %%%set(vo, 'FrameRate', min(5, 1/pauseLen));
-        %%%open(vo);
-    end
-end
+% if makeVideo
+%     try
+%         votype = 'avifile';
+%         vo = avifile('video.avi', 'fps', min(5, 1/pauseLen));
+%     catch
+%         votype = 'VideoWriter';
+%         %%%vo = VideoWriter('video', 'MPEG-4');
+%         %%%set(vo, 'FrameRate', min(5, 1/pauseLen));
+%         %%%open(vo);
+%     end
+% end
 
 % Initalize Params
 %===================================================
@@ -60,86 +61,131 @@ Param.R = diag([sigma.r, sigma.beta].^2);
 
 % Initialize State
 %===================================================
-State.Ekf.mu = [Data.Gps.x(2), Data.Gps.y(2), 36*pi/180]';
-State.Ekf.Sigma = zeros(3);
-State.Ekf.aug_mu = State.Ekf.mu;
-State.Ekf.Observed_landmarks = [];
-State.Ekf.data_assoc = [];
-State.Ekf.predMu = State.Ekf.mu;
-State.Ekf.predSigma = State.Ekf.Sigma;
-Param.updateMethod='seq'
-State.Ekf.run_time_pred = zeros(nSteps);
-State.Ekf.run_time_update = zeros(nSteps);
-State.Ekf.run_time_landmarks=zeros(nSteps);
+% State.Ekf.mu = [Data.Gps.x(2), Data.Gps.y(2), 36*pi/180]';
+% State.Ekf.Sigma = zeros(3);
+% State.Ekf.aug_mu = State.Ekf.mu;
+% State.Ekf.Observed_landmarks = [];
+% State.Ekf.data_assoc = [];
+% State.Ekf.predMu = State.Ekf.mu;
+% State.Ekf.predSigma = State.Ekf.Sigma;
+% Param.updateMethod='seq'
+% State.Ekf.run_time_pred = zeros(nSteps);
+% State.Ekf.run_time_update = zeros(nSteps);
+% State.Ekf.run_time_landmarks=zeros(nSteps);
 global AAr;
 AAr = [0:360]*pi/360;
 
 
-figure(1); clf;
-axis equal;
+% figure(1); clf;
+% axis equal;
 
+global X_ab; % Robot position in absolute coordinates system
+X_ab = zeros(3,1);
+X_p = zeros(3,1); % Robot position prediction
+M = zeros(3,1); % Global map
 ci = 1; % control index
-t = min(Data.Laser.time(1), Data.Control.time(1));
-for k=1:min(nSteps, length(Data.Laser.time))
+t = min(Data.Laser.time(1), Data.Control.time(1))
 
-    tic
-    while (Data.Control.time(ci) < Data.Laser.time(k)) %PREDICT UNTIL YOU GET AN OBSERVATION
-       % control available
-       dt = Data.Control.time(ci) - t;
+for k=1:min(length(Data.Laser.time))
+    while (Data.Laser.time(ci)<Data.Laser.time(k))
+       dt = Data.Control.time(ci) - t
        t = Data.Control.time(ci);
        u = [Data.Control.ve(ci), Data.Control.alpha(ci)]';
-        
-       
-       ekfpredict_vp(u, dt);    %%PREDICT
-       
+       X_p = motion_model(u, dt)
        ci = ci+1;
     end
-    State.Ekf.run_time_pred(k) = toc;
-    % observation available
+    
     dt = Data.Laser.time(k) - t;
     t = Data.Laser.time(k);
-    z = detectTreesI16(Data.Laser.ranges(k,:));
+    z = detectTreesI16(Data.Laser.ranges(k,:))
+   
+    % detectTreesI16() return x, a 3xn matrix, where
+    % x(1,i) distance to i-landmark center
+    % x(2,i) angle of i-landmark center (in radians)
+    % x(3,i) i-landmark diameter
     
+    
+    if (~isempty(z))
     z_2 = z;
-    z_2(2,:) = z_2(2,:) - pi/2;
-    
-    tic
-    ekfupdate(z_2); %%MAKE AN UPDATE
-    State.Ekf.run_time_update(k) = toc;
-    State.Ekf.run_time_landmarks(k) = length(State.Ekf.Observed_landmarks);
-    State.Ekf.aug_mu = [State.Ekf.aug_mu, State.Ekf.mu(1:3)];
-    
-    doGraphics(z);
-    drawnow;
-    if pauseLen > 0
-        pause(pauseLen);
+    z_2(2,:) = z_2(2,:) - pi/2
     end
-    if makeVideo
-        F = getframe(gcf);
-        switch votype
-          case 'avifile'
-            vo = addframe(vo, F);
-          case 'VideoWriter'
-            %%%writeVideo(vo, F);
-          otherwise
-            error('unrecognized votype');
-        end
-    end
+    
+    %% Convert relative coordinates to absolute coordinate
+    [X_ab, z_ab] = rel2abs(X_p, z_2);
+    
 end
-figure;
-title('CPU TIME FOR PREDICTION AND UPDATE ');
-plot(1:nSteps, State.Ekf.run_time_pred);
-hold on;
-plot(1:nSteps, State.Ekf.run_time_update);
-hold off;
-legend('Prediction','Update');
-xlabel('nSteps');
-ylabel('CPU time');
-figure;
-title('Number of landmarks with time');
-plot(1:nSteps, State.Ekf.run_time_landmarks);
-xlabel('Iteration');
-ylabel('Number of Landmarks');
+
+
+% for k=1:min(nSteps, length(Data.Laser.time))
+% 
+%     tic
+%     while (Data.Control.time(ci) < Data.Laser.time(k)) %PREDICT UNTIL YOU GET AN OBSERVATION
+%        % control available
+%        dt = Data.Control.time(ci) - t;
+%        t = Data.Control.time(ci);
+%        u = [Data.Control.ve(ci), Data.Control.alpha(ci)]';
+%         
+%        
+%        ekfpredict_vp(u, dt);    %%PREDICT
+%        
+%        ci = ci+1;
+%     end
+%     State.Ekf.run_time_pred(k) = toc;
+%     % observation available
+%     dt = Data.Laser.time(k) - t;
+%     t = Data.Laser.time(k);
+%     z = detectTreesI16(Data.Laser.ranges(k,:));
+%     
+%     z_2 = z;
+%     z_2(2,:) = z_2(2,:) - pi/2;
+%     
+%     tic
+%     ekfupdate(z_2); %%MAKE AN UPDATE
+%     State.Ekf.run_time_update(k) = toc;
+%     State.Ekf.run_time_landmarks(k) = length(State.Ekf.Observed_landmarks);
+%     State.Ekf.aug_mu = [State.Ekf.aug_mu, State.Ekf.mu(1:3)];
+%     
+%     doGraphics(z);
+%     drawnow;
+%     if pauseLen > 0
+%         pause(pauseLen);
+%     end
+%     if makeVideo
+%         F = getframe(gcf);
+%         switch votype
+%           case 'avifile'
+%             vo = addframe(vo, F);
+%           case 'VideoWriter'
+%             %%%writeVideo(vo, F);
+%           otherwise
+%             error('unrecognized votype');
+%         end
+%     end
+% end
+% figure;
+% title('CPU TIME FOR PREDICTION AND UPDATE ');
+% plot(1:nSteps, State.Ekf.run_time_pred);
+% hold on;
+% plot(1:nSteps, State.Ekf.run_time_update);
+% hold off;
+% legend('Prediction','Update');
+% xlabel('nSteps');
+% ylabel('CPU time');
+% figure;
+% title('Number of landmarks with time');
+% plot(1:nSteps, State.Ekf.run_time_landmarks);
+% xlabel('Iteration');
+% ylabel('Number of Landmarks');
+
+%==========================================================================
+function [X_ab,z_ab] = rel2abs(X_p,z_2)
+
+X_p
+global X_ab
+X_ab
+
+X_ab = X_ab + X_p;
+z_ab = z_2 + X_ab;
 
 %==========================================================================
 function doGraphics(z)
