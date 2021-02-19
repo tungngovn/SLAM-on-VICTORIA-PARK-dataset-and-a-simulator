@@ -17,17 +17,17 @@ end
 
 Data = load_vp_si();
 
-if makeVideo
-    try
-        votype = 'avifile';
-        vo = avifile('video.avi', 'fps', min(5, 1/pauseLen));
-    catch
-        votype = 'VideoWriter';
-        %%%vo = VideoWriter('video', 'MPEG-4');
-        %%%set(vo, 'FrameRate', min(5, 1/pauseLen));
-        %%%open(vo);
-    end
-end
+% if makeVideo
+%     try
+%         votype = 'avifile';
+%         vo = avifile('video.avi', 'fps', min(5, 1/pauseLen));
+%     catch
+%         votype = 'VideoWriter';
+%         %%%vo = VideoWriter('video', 'MPEG-4');
+%         %%%set(vo, 'FrameRate', min(5, 1/pauseLen));
+%         %%%open(vo);
+%     end
+% end
 
 % Initalize Params
 %===================================================
@@ -110,17 +110,17 @@ for k=1:min(nSteps, length(Data.Laser.time))
     if pauseLen > 0
         pause(pauseLen);
     end
-    if makeVideo
-        F = getframe(gcf);
-        switch votype
-          case 'avifile'
-            vo = addframe(vo, F);
-          case 'VideoWriter'
-            %%%writeVideo(vo, F);
-          otherwise
-            error('unrecognized votype');
-        end
-    end
+%     if makeVideo
+%         F = getframe(gcf);
+%         switch votype
+%           case 'avifile'
+%             vo = addframe(vo, F);
+%           case 'VideoWriter'
+%             %%%writeVideo(vo, F);
+%           otherwise
+%             error('unrecognized votype');
+%         end
+%     end
 end
 figure;
 title('CPU TIME FOR PREDICTION AND UPDATE ');
