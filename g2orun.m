@@ -92,7 +92,9 @@ global t;
 t = min(Data.Laser.time(1), Data.Control.time(1)); % time stamp
 % States.X_ab(3) = 36*pi/180;
 
-test_step = 7000;
+global Z_full;
+Z_full = zeros(3,1);
+test_step = 700;
 
 % for k=1:length(Data.Laser.time)
 for k=1:test_step % Test algorithm
@@ -100,7 +102,7 @@ for k=1:test_step % Test algorithm
         t = Data.Control.time(ci);
         dt = Data.Control.time(ci+1) - t;
 %         t = Data.Control.time(ci);
-        u = [Data.Control.ve(ci), Data.Control.alpha(ci)]'
+        u = [Data.Control.ve(ci), Data.Control.alpha(ci)]';
         X_p = motion_model(u, dt);
         States.X_ab = States.X_ab + X_p;
         ci = ci+1;
@@ -126,15 +128,20 @@ for k=1:test_step % Test algorithm
     % x(3,i) i-landmark diameter
     
     
-    if (~isempty(z))
-        z_2 = z;
-        z_2(2,:) = z_2(2,:) - pi/2;
-    end
-    
+%     if (~isempty(z))
+%         z_2 = z;
+%         z_2(2,:) = z_2(2,:) - pi/2;
+%     end
+
     %% Convert relative coordinates to absolute coordinate
-    [X_abs, z_ab] = rel2abs(X_p, z_2);
+    if (length(z)==0) 
+        continue;
+    end
+    [X_abs, z_ab] = rel2abs(X_p, z);
 %     States.X_ab
     L_s = [L_s X_abs];
+    Z_full = [Z_full z_ab];
+    
     
 end
 
@@ -148,10 +155,11 @@ hold on;
 plot (X(1,:), X(2,:), 'r+');
 % hold on;
 plot (L_s(1,:), L_s(2,:), 'g-');
+plot (Z_full(1,:), Z_full(2,:), 'c*');
 hold off;
 
 %==========================================================================
-function [X_abs,z_abs] = rel2abs(X_p,z_2)
+function [X_abs,z_abs] = rel2abs(X_p,z)
 
 % X_p;
 global Param;
@@ -163,4 +171,10 @@ phi = X_abs(3);
 X_v = zeros(3,1);
 X_v(1) = X_abs(1) + Param.a*cos(phi)-Param.b*sin(phi);
 X_v(2) = X_abs(2) + Param.a*sin(phi)-Param.b*cos(phi);
-z_abs = z_2 + X_v;
+
+length(z)
+
+z_abs = zeros(3,length(z));
+z_abs(1) = z(1).*cos(phi + z(2)) + X_v(1);
+z_abs(2) = X_v(2) + z(1).*sin(phi + z(2));
+z_abs(3) = z(3);
