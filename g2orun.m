@@ -27,8 +27,9 @@ t = min(Data.Laser.time(1), Data.Control.time(1)); % time stamp
 % States.X_ab(3) = 36*pi/180;
 
 States.vertex = zeros(3,1);
-G2O.XY_vertex = zeros(4,1)
-G2O.XY_vertex(4) = 1;
+G2O.SE2_vertex = zeros(4,1);
+G2O.SE2_vertex(4) = 1;
+G2O.edge = zeros(4,1);
 
 global Z_full;
 Z_full = zeros(3,1);
@@ -46,8 +47,11 @@ for k=1:test_step % Test algorithm
         ci = ci+1;
         X = [X States.X_ab];
         
-        if (new_XY_vertex(States.X_ab))
-            add_XY_vertex(States.X_ab);
+%         if (new_XY_vertex(States.X_ab))
+%             add_XY_vertex(States.X_ab);
+%         end
+        if (new_SE2_vertex(States.X_ab))
+            add_SE2_vertex(States.X_ab);
         end
         
     end
@@ -81,7 +85,7 @@ for k=1:test_step % Test algorithm
 end
 
 X;
-G2O.XY_vertex
+G2O.SE2_vertex;
 test_gps_step = 4000;
 figure;
 gt_x = Data.Gps.x - Data.Gps.x(1);
@@ -92,8 +96,10 @@ plot (X(1,:), X(2,:), 'r+');
 % hold on;
 plot (L_s(1,:), L_s(2,:), 'g-');
 % plot (Z_full(1,:), Z_full(2,:), 'c*');
-plot (G2O.XY_vertex(1,:), G2O.XY_vertex(2,:), 'c*');
+plot (G2O.SE2_vertex(1,:), G2O.SE2_vertex(2,:), 'c*');
 hold off;
+
+write_g2o_file(G2O.SE2_vertex);
 
 %==========================================================================
 function [X_abs,z_abs] = rel2abs(X_p,z)

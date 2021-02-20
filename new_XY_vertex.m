@@ -1,11 +1,11 @@
-function new = new_XY_vertex(X)
+function new = new_XY_vertex(X_ab)
 
 global Threshold;
 global States;
 
 Threshold.vertex_translation
 
-if (translation(X, States.vertex) > Threshold.vertex_translation)
+if (translation(X_ab, States.vertex) > Threshold.vertex_translation)
     new = 1;
 else
     new = 0;
